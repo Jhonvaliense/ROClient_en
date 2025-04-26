@@ -21,4 +21,5 @@ packet(0x0c22, 12);
 #endif
 
 20231220+ CLIENT bodystylefix
-https://github.com/AoShinRO/brHades/commit/1396b012600db9b0688f3cd3fdb9ac273d525bd0
+Source : https://github.com/AoShinRO/brHades/commit/1396b012600db9b0688f3cd3fdb9ac273d525bd0
+
