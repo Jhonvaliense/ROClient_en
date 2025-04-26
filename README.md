@@ -23,5 +23,7 @@ packet(0x0c22, 12);
 20231220+ CLIENT bodystylefix
 https://github.com/AoShinRO/brHades/commit/1396b012600db9b0688f3cd3fdb9ac273d525bd0
 
+*2025-04-02 client update, opening a shop linked to barters.yml causes the client to crash if there are more than two trade items.
+It seems that the packet structure has changed!*
 
 
