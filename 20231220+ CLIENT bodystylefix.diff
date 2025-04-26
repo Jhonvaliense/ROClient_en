@@ -1,0 +1,182 @@
+diff --git a/conf/battle/client.conf b/conf/battle/client.conf
+index bccabf0ae..2c1fe284f 100644
+--- a/conf/battle/client.conf
++++ b/conf/battle/client.conf
+@@ -20,8 +20,6 @@ min_hair_color: 0
+ max_hair_color: 8
+ min_cloth_color: 0 
+ max_cloth_color: 7
+-min_body_style: 0
+-max_body_style: 1
+ 
+ // When set to yes, the damage field in packets sent from woe maps will be set
+ // to -1, making it impossible for GMs, Bots and Hexed clients to know the
+diff --git a/src/char/char.cpp b/src/char/char.cpp
+index fd76a93f9..39c58e0ff 100644
+--- a/src/char/char.cpp
++++ b/src/char/char.cpp
+@@ -1492,13 +1492,20 @@ int32 char_make_new_char( struct char_session_data* sd, char* name_, int32 str,
+ 	}
+ #endif
+ 
++
++#if PACKETVER >= 20231220
++	int32 body = start_job;
++#else
++	int32 body = 0;
++#endif
++
+ 	//Insert the new char entry to the database
+ 	if( SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s` (`account_id`, `char_num`, `name`, `class`, `zeny`, `status_point`, `str`, `agi`, `vit`, `int`, `dex`, `luk`, `max_hp`, `hp`,"
+-		"`max_sp`, `sp`, `hair`, `hair_color`, `last_map`, `last_x`, `last_y`, `save_map`, `save_x`, `save_y`, `sex`, `last_instanceid`) VALUES ("
+-		"'%d', '%d', '%s', '%d', '%d',  '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%u', '%u', '%u', '%d', '%d', '%s', '%d', '%d', '%s', '%d', '%d', '%c', '0')",
++		"`max_sp`, `sp`, `hair`, `hair_color`, `last_map`, `last_x`, `last_y`, `save_map`, `save_x`, `save_y`, `sex`, `last_instanceid`, `body`) VALUES ("
++ 		"'%d', '%d', '%s', '%d', '%d',  '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%u', '%u', '%u', '%d', '%d', '%s', '%d', '%d', '%s', '%d', '%d', '%c', '0', '%d')",
+ 		schema_config.char_db, sd->account_id , slot, esc_name, start_job, charserv_config.start_zeny, status_points, str, agi, vit, int_, dex, luk,
+ 		(40 * (100 + vit)/100) , (40 * (100 + vit)/100 ),  (11 * (100 + int_)/100), (11 * (100 + int_)/100), hair_style, hair_color,
+-		tmp_start_point[start_point_idx].map, tmp_start_point[start_point_idx].x, tmp_start_point[start_point_idx].y, tmp_start_point[start_point_idx].map, tmp_start_point[start_point_idx].x, tmp_start_point[start_point_idx].y, sex ) )
++		tmp_start_point[start_point_idx].map, tmp_start_point[start_point_idx].x, tmp_start_point[start_point_idx].y, tmp_start_point[start_point_idx].map, tmp_start_point[start_point_idx].x, tmp_start_point[start_point_idx].y, sex, body ) )
+ 	{
+ 		Sql_ShowDebug(sql_handle);
+ 		return -2; //No, stop the procedure!
+diff --git a/src/custom/defines_pre.hpp b/src/custom/defines_pre.hpp
+index 93b1780dc..22e3dd542 100644
+--- a/src/custom/defines_pre.hpp
++++ b/src/custom/defines_pre.hpp
+@@ -9,6 +9,6 @@
+  * For detailed guidance on these check http://rathena.org/wiki/SRC/config/
+  **/
+ 
+-
++#define PACKETVER 20250319
+ 
+ #endif /* CONFIG_CUSTOM_DEFINES_PRE_HPP */
+diff --git a/src/map/atcommand.cpp b/src/map/atcommand.cpp
+index 0e5abb82b..2245de579 100644
+--- a/src/map/atcommand.cpp
++++ b/src/map/atcommand.cpp
+@@ -1966,10 +1966,12 @@ ACMD_FUNC(bodystyle)
+ 
+ 	memset(atcmd_output, '\0', sizeof(atcmd_output));
+ 
++#if PACKETVER < 20231220
+ 	if ( (sd->class_ & JOBL_FOURTH) || !(sd->class_ & JOBL_THIRD) || (sd->class_ & MAPID_THIRDMASK) == MAPID_SUPER_NOVICE_E || (sd->class_ & MAPID_THIRDMASK) == MAPID_STAR_EMPEROR || (sd->class_ & MAPID_THIRDMASK) == MAPID_SOUL_REAPER) {
+ 		clif_displaymessage(fd, msg_txt(sd,740));	// This job has no alternate body styles.
+ 		return -1;
+ 	}
++#endif
+ 
+ 	if (!message || !*message || sscanf(message, "%d", &body_style) < 1) {
+ 		sprintf(atcmd_output, msg_txt(sd,739), MIN_BODY_STYLE, MAX_BODY_STYLE);		// Please enter a body style (usage: @bodystyle <body ID: %d-%d>).
+diff --git a/src/map/battle.cpp b/src/map/battle.cpp
+index 2ea135114..58d777f4b 100644
+--- a/src/map/battle.cpp
++++ b/src/map/battle.cpp
+@@ -12043,8 +12043,6 @@ static const struct _battle_data {
+ 	{ "feature.roulette",                   &battle_config.feature_roulette,                1,      0,      1,              },
+ 	{ "feature.roulette_bonus_reward",      &battle_config.feature_roulette_bonus_reward,   1,      0,      1,              },
+ 	{ "monster_hp_bars_info",               &battle_config.monster_hp_bars_info,            1,      0,      1,              },
+-	{ "min_body_style",                     &battle_config.min_body_style,                  0,      0,      SHRT_MAX,       },
+-	{ "max_body_style",                     &battle_config.max_body_style,                  1,      0,      SHRT_MAX,       },
+ 	{ "save_body_style",                    &battle_config.save_body_style,                 1,      0,      1,              },
+ 	{ "monster_eye_range_bonus",            &battle_config.mob_eye_range_bonus,             0,      0,      10,             },
+ 	{ "monster_stuck_warning",              &battle_config.mob_stuck_warning,               0,      0,      1,              },
+diff --git a/src/map/battle.hpp b/src/map/battle.hpp
+index a9ab3f629..d5bcde2b4 100644
+--- a/src/map/battle.hpp
++++ b/src/map/battle.hpp
+@@ -156,8 +156,12 @@ bool is_infinite_defense(struct block_list *target, int32 flag);
+ #define MAX_HAIR_COLOR battle_config.max_hair_color
+ #define MIN_CLOTH_COLOR battle_config.min_cloth_color
+ #define MAX_CLOTH_COLOR battle_config.max_cloth_color
+-#define MIN_BODY_STYLE battle_config.min_body_style
+-#define MAX_BODY_STYLE battle_config.max_body_style
++#define MIN_BODY_STYLE 0
++#if PACKETVER >= 20231220
++#define MAX_BODY_STYLE (JOB_MAX-1)
++#else
++#define MAX_BODY_STYLE 1
++#endif
+ 
+ struct Battle_Config
+ {
+@@ -646,8 +650,6 @@ struct Battle_Config
+ 	int32 feature_roulette;
+ 	int32 feature_roulette_bonus_reward;
+ 	int32 monster_hp_bars_info;
+-	int32 min_body_style;
+-	int32 max_body_style;
+ 	int32 save_body_style;
+ 	int32 mob_eye_range_bonus; //Vulture's Eye and Snake's Eye range bonus
+ 	int32 mob_stuck_warning; //Show warning if a monster is stuck too long
+diff --git a/src/map/clif.cpp b/src/map/clif.cpp
+index f67c4ace2..20c55205b 100644
+--- a/src/map/clif.cpp
++++ b/src/map/clif.cpp
+@@ -4075,8 +4075,10 @@ void clif_changelook(struct block_list *bl, int32 type, int32 val) {
+ #if PACKETVER < 20150513
+ 				return;
+ #else
++#if PACKETVER < 20231220
+ 				if (val && sd && sd->sc.option&OPTION_COSTUME)
+  					val = 0;
++#endif
+  				vd->body_style = val;
+ #endif
+ 				break;
+diff --git a/src/map/pc.cpp b/src/map/pc.cpp
+index 30cd03abf..62fef21eb 100755
+--- a/src/map/pc.cpp
++++ b/src/map/pc.cpp
+@@ -1287,8 +1287,13 @@ void pc_makesavestatus(map_session_data *sd) {
+ 		sd->status.clothes_color = 0;
+ 
+ 	if(!battle_config.save_body_style)
++	{
++#if PACKETVER >= 20231220
++ 		sd->status.body = sd->status.class_;
++#else
+ 		sd->status.body = 0;
+-
++#endif
++ 	}
+ 	//Only copy the Cart/Peco/Falcon options, the rest are handled via
+ 	//status change load/saving. [Skotlex]
+ #ifdef NEW_CARTS
+@@ -10806,8 +10811,12 @@ bool pc_jobchange(map_session_data *sd,int32 job, char upper)
+ 
+ 	// Reset body style to 0 before changing job to avoid
+ 	// errors since not every job has a alternate outfit.
++#if PACKETVER >= 20231220
++ 	sd->status.body = job;
++#else
+ 	sd->status.body = 0;
+-	clif_changelook(&sd->bl,LOOK_BODY2,0);
++#endif
++	clif_changelook(&sd->bl,LOOK_BODY2,sd->status.body);
+ 
+ 	sd->status.class_ = job;
+ 	fame_flag = pc_famerank(sd->status.char_id,sd->class_&MAPID_UPPERMASK);
+diff --git a/src/map/status.cpp b/src/map/status.cpp
+index b81a9eb9e..95138bd22 100644
+--- a/src/map/status.cpp
++++ b/src/map/status.cpp
+@@ -12898,7 +12898,9 @@ int32 status_change_start(struct block_list* src, struct block_list* bl,enum sc_
+ 				clif_changelook(bl,LOOK_WEAPON,0);
+ 				clif_changelook(bl,LOOK_SHIELD,0);
+ 				clif_changelook(bl,LOOK_CLOTHES_COLOR,vd->cloth_color);
++#if PACKETVER < 20231220
+ 				clif_changelook(bl,LOOK_BODY2,0);
++#endif
+ 				break;
+ 			case SC_STONE:
+ 			case SC_STONEWAIT:
+@@ -13946,7 +13948,7 @@ int32 status_change_end( struct block_list* bl, enum sc_type type, int32 tid ){
+ 			clif_changelook(bl,LOOK_WEAPON,sd->vd.weapon);
+ 			clif_changelook(bl,LOOK_SHIELD,sd->vd.shield);
+ 			clif_changelook(bl,LOOK_CLOTHES_COLOR,cap_value(sd->status.clothes_color,0,battle_config.max_cloth_color));
+-			clif_changelook(bl,LOOK_BODY2,cap_value(sd->status.body,0,battle_config.max_body_style));
++			clif_changelook(bl,LOOK_BODY2,cap_value(sd->status.body,0,MAX_BODY_STYLE));
+ 		}
+ 	}
+ 	if (calc_flag.any()) {
