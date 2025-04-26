@@ -1,6 +1,6 @@
 # ROClient_en
 
-2025-04-16 kro (EN)
+2025-04-16 kro (EN) 3.8GB
 https://drive.google.com/file/d/1hIczvHPMF19PvA2TsHDUR9Ms5eZxBq7u/view?usp=sharing
 
 These client files are provided solely for server testing purposes.
